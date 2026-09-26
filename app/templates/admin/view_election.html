@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block title %}View Election - ROHIT VOTING SYSTEM{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4"><div class="col-12"><h2>{{ election.title }}</h2>{% if election.can_be_modified() %}<a href="{{ url_for('admin.edit_election', election_id=election.id) }}" class="btn btn-primary">Edit</a>{% endif %}<a href="{{ url_for('admin.elections') }}" class="btn btn-outline-light">Back to Elections</a></div></div>
+    <div class="row g-4"><div class="col-md-6"><div class="card"><div class="card-body"><p><strong>Status:</strong> {{ election.status }}</p><p><strong>Public code:</strong> {{ election.public_code }}</p><p><strong>Start:</strong> {{ election.start_time.strftime('%Y-%m-%d %H:%M') }}</p><p><strong>End:</strong> {{ election.end_time.strftime('%Y-%m-%d %H:%M') }}</p><p><strong>Description:</strong> {{ election.description or 'No description provided.' }}</p><p><strong>Eligible voters:</strong> {{ election.get_voter_count() }}</p><p><strong>Votes cast:</strong> {{ election.get_votes_cast() }}</p></div></div></div>
+    <div class="col-md-6"><div class="card"><div class="card-body"><h5>Candidates</h5>{% if election.candidates %}<ul>{% for candidate in election.candidates %}<li><a href="{{ url_for('admin.view_candidate', candidate_id=candidate.id) }}">{{ candidate.name }}</a> - {{ candidate.get_vote_count(election.id) }} vote(s)</li>{% endfor %}</ul>{% else %}<p class="text-secondary">No candidates assigned.</p>{% endif %}<h5>Voters</h5>{% if election.voter_eligibilities %}<ul>{% for eligibility in election.voter_eligibilities %}<li><a href="{{ url_for('admin.view_voter', voter_id=eligibility.voter.id) }}">{{ eligibility.voter.name }}</a> - {% if eligibility.has_voted %}Voted{% elif eligibility.verified %}Verified{% else %}Pending verification{% endif %}</li>{% endfor %}</ul>{% else %}<p class="text-secondary">No eligible voters assigned.</p>{% endif %}</div></div></div></div>
+</div>
+{% endblock %}

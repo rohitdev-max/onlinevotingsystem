@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Candidate - ROHIT VOTING SYSTEM{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4"><div class="col-12"><h2>Edit Candidate</h2><a href="{{ url_for('admin.view_candidate', candidate_id=candidate.id) }}" class="btn btn-outline-light">Back to Candidate</a></div></div>
+    <div class="row"><div class="col-md-8"><div class="card"><div class="card-body">
+        <form method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="mb-3"><label for="name" class="form-label">Name *</label><input type="text" class="form-control" id="name" name="name" value="{{ candidate.name }}" required></div>
+            <div class="mb-3"><label for="photo" class="form-label">Replace Candidate Image</label><input type="file" class="form-control" id="photo" name="photo" accept=".jpg,.jpeg,.png,.gif,.webp"><div class="form-text">Leave empty to keep the current image. Maximum 4 MB.</div>{% if candidate.photo %}<div class="form-check mt-2"><input class="form-check-input" type="checkbox" id="remove_photo" name="remove_photo"><label class="form-check-label" for="remove_photo">Remove current image</label></div>{% endif %}</div>
+            <div class="mb-3"><label for="description" class="form-label">Description</label><textarea class="form-control" id="description" name="description" rows="4">{{ candidate.description or '' }}</textarea></div>
+            <div class="mb-3"><label class="form-label">Elections</label>{% for election in elections %}<div class="form-check"><input class="form-check-input" type="checkbox" name="election_ids" value="{{ election.id }}" id="election-{{ election.id }}" {% if election in candidate.elections %}checked{% endif %}><label class="form-check-label" for="election-{{ election.id }}">{{ election.title }}</label></div>{% else %}<p class="text-secondary">No elections available.</p>{% endfor %}</div>
+            <button type="submit" class="btn btn-primary">Update Candidate</button>
+            <a href="{{ url_for('admin.view_candidate', candidate_id=candidate.id) }}" class="btn btn-outline-light">Cancel</a>
+        </form>
+    </div></div></div></div>
+</div>
+{% endblock %}

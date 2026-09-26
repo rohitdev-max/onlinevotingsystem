@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Voter Dashboard - ROHIT VOTING SYSTEM{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="page-kicker">Your voting desk</div>
+            <h2>Voter Dashboard</h2>
+            <p class="text-secondary mb-0">Welcome, {{ session.get('voter_name') }}. Your eligible elections appear below.</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Available Elections</h5>
+                </div>
+                <div class="card-body">
+                    {% if elections %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Election Title</th>
+                                    <th>Status</th>
+                                    <th>Start Time</th>
+                                    <th>End Time</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for election in elections %}
+                                <tr>
+                                    <td>{{ election.title }}</td>
+                                    <td>
+                                        <span class="status-badge status-{{ election.status.lower().replace('_', '-') }}">
+                                            {{ election.status }}
+                                        </span>
+                                    </td>
+                                    <td>{{ election.start_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>{{ election.end_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>
+                                        <a href="{{ url_for('voting.election_page', public_code=election.public_code) }}" class="btn btn-sm btn-primary">
+                                            Vote Now
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <p class="text-secondary">No elections available for voting at this time.</p>
+                        <p class="text-secondary">Please contact the administrator if you believe this is an error.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <a href="{{ url_for('voter.voter_logout') }}" class="btn btn-outline-light">
+                        Logout
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

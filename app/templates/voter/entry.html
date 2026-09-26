@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Vote - ROHIT VOTING SYSTEM{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header text-center">
+                    <h2>🗳️ Voter Access</h2>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <p class="lead">Choose how you want to access the voting system</p>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100" style="background-color: var(--bg-card); border: 1px solid var(--accent);">
+                                <div class="card-body text-center">
+                                    <h3 style="color: var(--accent);">📱 Phone Login</h3>
+                                    <p class="text-secondary">Login with your registered phone number</p>
+                                    <a href="{{ url_for('voter.voter_login') }}" class="btn btn-primary w-100">
+                                        Login with Phone
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100" style="background-color: var(--bg-card); border: 1px solid #2d3748;">
+                                <div class="card-body text-center">
+                                    <h3 style="color: #3b82f6;">🔢 Election Code</h3>
+                                    <p class="text-secondary">Enter election public code directly</p>
+                                    <a href="/election/code" class="btn btn-outline-light w-100">
+                                        Enter Code
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        <a href="/" class="text-secondary">← Back to Home</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

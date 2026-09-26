@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Enter Election Code - ROHIT VOTING SYSTEM{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-4">
+            <div class="card">
+                <div class="card-header text-center">
+                    <h3>Enter Election Code</h3>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('voting.election_code_entry') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="mb-3">
+                            <label for="public_code" class="form-label">Election Public Code</label>
+                            <input type="text" class="form-control" id="public_code" name="public_code" required autofocus placeholder="e.g., DEMO2024">
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">Access Election</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="text-center mt-3">
+                <small class="text-secondary">
+                    Enter the public code provided by the election administrator
+                </small>
+            </div>
+            <div class="text-center mt-2">
+                <a href="{{ url_for('voter.vote_entry') }}" class="text-secondary">← Back to Voter Access</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

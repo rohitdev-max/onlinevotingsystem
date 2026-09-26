@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}View Candidate - ROHIT VOTING SYSTEM{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4"><div class="col-12"><h2>{{ candidate.name }}</h2><a href="{{ url_for('admin.edit_candidate', candidate_id=candidate.id) }}" class="btn btn-primary">Edit</a><a href="{{ url_for('admin.candidates') }}" class="btn btn-outline-light">Back to Candidates</a></div></div>
+    <div class="row"><div class="col-md-8"><div class="card"><div class="card-body">
+        {% if candidate.photo %}<img src="{{ candidate.photo }}" alt="{{ candidate.name }}" class="img-fluid mb-3" style="max-height: 220px;">{% endif %}
+        <p><strong>Description:</strong> {{ candidate.description or 'No description provided.' }}</p>
+        <h5>KYC and face authentication</h5>
+        <p><strong>KYC status:</strong> {{ candidate.kyc_status }}</p>
+        <p><strong>Face status:</strong> {{ candidate.face_auth_status }}</p>
+        {% if candidate.phone %}<p><strong>Phone:</strong> {{ candidate.phone }}</p>{% endif %}
+        {% if candidate.identity_reference %}<p><strong>Identity reference:</strong> {{ candidate.identity_reference }}</p>{% endif %}
+        {% if candidate.kyc_document_filename %}<a href="{{ url_for('admin.download_kyc_document', filename=candidate.kyc_document_filename) }}" class="btn btn-outline-light btn-sm">Download KYC document</a>{% endif %}
+        {% if candidate.face_image_filename %}<a href="{{ url_for('admin.download_face_image', filename=candidate.face_image_filename) }}" class="btn btn-outline-light btn-sm">Download face image</a>{% endif %}
+        {% if candidate.kyc_status != 'VERIFIED' or candidate.face_auth_status != 'VERIFIED' %}<form method="POST" action="{{ url_for('admin.review_candidate_kyc', candidate_id=candidate.id) }}" class="mt-3"><input type="hidden" name="status" value="VERIFIED"><button type="submit" class="btn btn-success btn-sm">Verify KYC and face</button></form>{% endif %}
+        {% if candidate.kyc_status != 'REJECTED' %}<form method="POST" action="{{ url_for('admin.review_candidate_kyc', candidate_id=candidate.id) }}" class="mt-2"><input type="hidden" name="status" value="REJECTED"><input type="text" name="reason" class="form-control form-control-sm mb-2" placeholder="Reason for rejection" required><button type="submit" class="btn btn-danger btn-sm">Reject KYC and face</button></form>{% endif %}
+        {% if candidate.kyc_rejection_reason %}<p class="text-danger mt-2"><strong>Rejection reason:</strong> {{ candidate.kyc_rejection_reason }}</p>{% endif %}
+        <h5>Elections</h5>
+        {% if candidate.elections %}<ul>{% for election in candidate.elections %}<li><a href="{{ url_for('admin.view_election', election_id=election.id) }}">{{ election.title }}</a> - {{ candidate.get_vote_count(election.id) }} vote(s)</li>{% endfor %}</ul>{% else %}<p class="text-secondary">This candidate is not assigned to an election.</p>{% endif %}
+    </div></div></div></div>
+</div>
+{% endblock %}

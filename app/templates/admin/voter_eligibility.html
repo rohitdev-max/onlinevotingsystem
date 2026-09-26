@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Voter Eligibility - ROHIT VOTING SYSTEM{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2>Manage Voter Eligibility</h2>
+            <p class="text-secondary">Voter: <strong>{{ voter.name }}</strong> ({{ voter.phone }})</p>
+            <a href="{{ url_for('admin.voters') }}" class="btn btn-outline-light">Back to Voters</a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Election Eligibility</h5>
+                </div>
+                <div class="card-body">
+                    {% if elections %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Election</th>
+                                    <th>Status</th>
+                                    <th>Eligible</th>
+                                    <th>Verified</th>
+                                    <th>Voted</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for election in elections %}
+                                {% set eligibility = eligibility_map.get(election.id) %}
+                                <tr>
+                                    <td>{{ election.title }}</td>
+                                    <td>
+                                        <span class="status-badge status-{{ election.status.lower().replace('_', '-') }}">
+                                            {{ election.status }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if eligibility %}
+                                            <span class="text-success">✓ Yes</span>
+                                        {% else %}
+                                            <span class="text-secondary">✗ No</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if eligibility and eligibility.verified %}
+                                            <span class="text-success">✓ Verified</span>
+                                        {% elif eligibility %}
+                                            <span class="text-warning">⚠ Pending</span>
+                                        {% else %}
+                                            <span class="text-secondary">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if eligibility and eligibility.has_voted %}
+                                            <span class="text-success">✓ Yes</span>
+                                        {% else %}
+                                            <span class="text-secondary">✗ No</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if eligibility %}
+                                            {% if not eligibility.verified %}
+                                            <form method="POST" action="{{ url_for('admin.verify_voter', voter_id=voter.id, election_id=election.id) }}" style="display: inline;">
+                                                <button type="submit" class="btn btn-sm btn-success">Verify</button>
+                                            </form>
+                                            {% endif %}
+                                            
+                                            {% if not eligibility.has_voted %}
+                                            <form method="POST" action="{{ url_for('admin.manage_voter_eligibility', voter_id=voter.id) }}" style="display: inline;">
+                                                <input type="hidden" name="election_id" value="{{ election.id }}">
+                                                <input type="hidden" name="action" value="remove">
+                                                <button type="submit" class="btn btn-sm btn-danger">Remove</button>
+                                            </form>
+                                            {% endif %}
+                                        {% else %}
+                                            <form method="POST" action="{{ url_for('admin.manage_voter_eligibility', voter_id=voter.id) }}" style="display: inline;">
+                                                <input type="hidden" name="election_id" value="{{ election.id }}">
+                                                <input type="hidden" name="action" value="add">
+                                                <button type="submit" class="btn btn-sm btn-primary">Add</button>
+                                            </form>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-secondary text-center">No elections available</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Result Details - ROHIT VOTING SYSTEM{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2>{{ election.title }} Results</h2>
+            <p class="text-secondary">Election closed: {{ election.end_time.strftime('%Y-%m-%d %H:%M') }}</p>
+            <a href="{{ url_for('admin.results') }}" class="btn btn-outline-light">Back to Results</a>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-md-4"><div class="card"><div class="card-body"><h5>Total Votes</h5><p class="fs-3 mb-0">{{ result.total_votes }}</p></div></div></div>
+        <div class="col-md-8"><div class="card"><div class="card-body"><h5>Winner</h5><p class="fs-3 mb-0">{{ result.winner }}</p></div></div></div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><h5>Candidate Results</h5></div>
+        <div class="card-body">
+            {% if result.candidate_results %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead><tr><th>Rank</th><th>Candidate</th><th>Votes</th><th>Percentage</th></tr></thead>
+                    <tbody>
+                        {% for candidate_result in result.candidate_results %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ candidate_result.candidate.name }}</td>
+                            <td>{{ candidate_result.vote_count }}</td>
+                            <td>{{ candidate_result.percentage }}%</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-secondary text-center mb-0">No candidates were assigned to this election.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

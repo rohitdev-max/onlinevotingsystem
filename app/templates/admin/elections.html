@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Elections - ROHIT VOTING SYSTEM{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2>Manage Elections</h2>
+            <a href="{{ url_for('admin.create_election') }}" class="btn btn-primary">Create New Election</a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    {% if elections %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Status</th>
+                                    <th>Start Time</th>
+                                    <th>End Time</th>
+                                    <th>Public Code</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for election in elections %}
+                                <tr>
+                                    <td>{{ election.title }}</td>
+                                    <td>
+                                        <span class="status-badge status-{{ election.status.lower().replace('_', '-') }}">
+                                            {{ election.status }}
+                                        </span>
+                                    </td>
+                                    <td>{{ election.start_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>{{ election.end_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>{{ election.public_code }}</td>
+                                    <td>
+                                        <a href="{{ url_for('admin.view_election', election_id=election.id) }}" class="btn btn-sm btn-primary">View</a>
+                                        {% if election.can_be_modified() %}
+                                        <a href="{{ url_for('admin.edit_election', election_id=election.id) }}" class="btn btn-sm btn-outline-light">Edit</a>
+                                        {% endif %}
+                                        {% if election.status in ['DRAFT', 'SCHEDULED'] %}
+                                        <form method="POST" action="{{ url_for('admin.update_election_status', election_id=election.id) }}" class="d-inline" onsubmit="return confirm('Open this election for voting?');">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <input type="hidden" name="status" value="OPEN">
+                                            <button type="submit" class="btn btn-sm btn-success">Open Election</button>
+                                        </form>
+                                        {% elif election.status == 'OPEN' %}
+                                        <form method="POST" action="{{ url_for('admin.update_election_status', election_id=election.id) }}" class="d-inline" onsubmit="return confirm('Close this election?');">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <input type="hidden" name="status" value="CLOSED">
+                                            <button type="submit" class="btn btn-sm btn-warning">Close Election</button>
+                                        </form>
+                                        {% endif %}
+                                        {% if election.votes|length > 0 %}
+                                        <form method="POST" action="{{ url_for('admin.clear_election_votes', election_id=election.id) }}" class="d-inline" onsubmit="return confirm('Clear all votes for this election? Eligible voters will be allowed to vote again.');">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">Clear Votes</button>
+                                        </form>
+                                        {% endif %}
+                                        <form method="POST" action="{{ url_for('admin.delete_election', election_id=election.id) }}" class="d-inline" onsubmit="return confirm('Permanently delete this election and all its votes?');">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-secondary text-center">No elections found</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

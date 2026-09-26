@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - ROHIT VOTING SYSTEM{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="page-kicker">Operations overview</div>
+            <h2>Admin Dashboard</h2>
+            <p class="text-secondary mb-0">Welcome back, {{ session.get('admin_username') }}. Keep the ballot moving.</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-3 mb-4">
+            <div class="card stat-card">
+                <div class="card-body text-center">
+                    <h3 class="display-4" style="color: var(--accent);">{{ stats.total_elections }}</h3>
+                    <p class="mb-0">Total Elections</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card stat-card">
+                <div class="card-body text-center">
+                    <h3 class="display-4" style="color: #22c55e;">{{ stats.active_elections }}</h3>
+                    <p class="mb-0">Active Elections</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card stat-card">
+                <div class="card-body text-center">
+                    <h3 class="display-4" style="color: #3b82f6;">{{ stats.total_voters }}</h3>
+                    <p class="mb-0">Total Voters</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card stat-card">
+                <div class="card-body text-center">
+                    <h3 class="display-4" style="color: #8b5cf6;">{{ stats.total_votes }}</h3>
+                    <p class="mb-0">Total Votes Cast</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Recent Elections</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_elections %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Status</th>
+                                    <th>Votes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for election in recent_elections %}
+                                <tr>
+                                    <td>{{ election.title }}</td>
+                                    <td>
+                                        <span class="status-badge status-{{ election.status.lower().replace('_', '-') }}">
+                                            {{ election.status }}
+                                        </span>
+                                    </td>
+                                    <td>{{ election.get_votes_cast() }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-secondary text-center">No elections yet</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('admin.create_election') }}" class="btn btn-primary">
+                            Create New Election
+                        </a>
+                        <a href="{{ url_for('admin.elections') }}" class="btn btn-outline-light">
+                            Manage Elections
+                        </a>
+                        <a href="{{ url_for('admin.candidates') }}" class="btn btn-outline-light">
+                            Manage Candidates
+                        </a>
+                        <a href="{{ url_for('admin.voters') }}" class="btn btn-outline-light">
+                            Manage Voters
+                        </a>
+                        <a href="{{ url_for('admin.results') }}" class="btn btn-outline-light">
+                            View Results
+                        </a>
+                        <a href="{{ url_for('admin.audit') }}" class="btn btn-outline-light">
+                            View Audit Logs
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

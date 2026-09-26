@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}{{ election.title }} - ROHIT VOTING SYSTEM{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2>{{ election.title }}</h2>
+            <p class="text-secondary">{{ election.description or 'No description available' }}</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Candidates</h5>
+                </div>
+                <div class="card-body">
+                    {% if can_vote %}
+                    <form method="POST" action="{{ url_for('voting.cast_vote', public_code=election.public_code) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="list-group">
+                            {% for candidate in candidates %}
+                            <div class="list-group-item">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" 
+                                           name="candidate_id" 
+                                           id="candidate_{{ candidate.id }}" 
+                                           value="{{ candidate.id }}" required>
+                                    <label class="form-check-label" for="candidate_{{ candidate.id }}">
+                                        <strong>{{ candidate.name }}</strong>
+                                        {% if candidate.description %}
+                                        <p class="mb-0 text-secondary small">{{ candidate.description }}</p>
+                                        {% endif %}
+                                    </label>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <div class="mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                🗳️ Cast My Vote
+                            </button>
+                        </div>
+                    </form>
+                    {% elif has_voted %}
+                    <div class="alert alert-success">
+                        <h4>✅ Vote Cast Successfully</h4>
+                        <p>You have already voted in this election. Thank you for your participation!</p>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        <h4>⚠️ Cannot Vote</h4>
+                        <p>You are not eligible to vote in this election. Please contact the administrator if you believe this is an error.</p>
+                        {% if session.get('voter_id') %}
+                        <a href="{{ url_for('voter.voter_login') }}" class="btn btn-outline-light mt-2">
+                            Login with Different Account
+                        </a>
+                        {% else %}
+                        <a href="{{ url_for('voter.voter_login') }}" class="btn btn-primary mt-2">
+                            Login to Vote
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Election Details</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Status:</strong> 
+                        <span class="status-badge status-{{ election.status.lower().replace('_', '-') }}">
+                            {{ election.status }}
+                        </span>
+                    </p>
+                    <p><strong>Start Time:</strong> {{ election.start_time.strftime('%Y-%m-%d %H:%M') }}</p>
+                    <p><strong>End Time:</strong> {{ election.end_time.strftime('%Y-%m-%d %H:%M') }}</p>
+                    <p><strong>Public Code:</strong> {{ election.public_code }}</p>
+                </div>
+            </div>
+            
+            {% if session.get('voter_id') %}
+            <div class="card mt-3">
+                <div class="card-body">
+                    <p class="mb-0">Logged in as: <strong>{{ session.get('voter_name') }}</strong></p>
+                    <a href="{{ url_for('voter.voter_dashboard') }}" class="btn btn-sm btn-outline-light mt-2">
+                        Back to Dashboard
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

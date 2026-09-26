@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Candidates - ROHIT VOTING SYSTEM{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2>Manage Candidates</h2>
+            <a href="{{ url_for('admin.add_candidate') }}" class="btn btn-primary">Add New Candidate</a>
+            <a href="{{ url_for('admin.elections') }}" class="btn btn-outline-light">Back to Elections</a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    {% if candidates %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Elections</th>
+                                    <th>Description</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for candidate in candidates %}
+                                <tr>
+                                    <td>{{ candidate.name }}</td>
+                                    <td>{{ candidate.elections|map(attribute='title')|join(', ') or 'Unassigned' }}</td>
+                                    <td>{{ candidate.description or 'N/A' }}</td>
+                                    <td>
+                                        <a href="{{ url_for('admin.view_candidate', candidate_id=candidate.id) }}" class="btn btn-sm btn-primary">View</a>
+                                        <a href="{{ url_for('admin.edit_candidate', candidate_id=candidate.id) }}" class="btn btn-sm btn-outline-light">Edit</a>
+                                        <form method="POST" action="{{ url_for('admin.delete_candidate', candidate_id=candidate.id) }}" class="d-inline" onsubmit="return confirm('Delete this candidate?');">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-secondary text-center">No candidates found</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
