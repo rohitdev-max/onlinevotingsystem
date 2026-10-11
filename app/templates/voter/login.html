@@ -16,7 +16,12 @@
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <div class="mb-3">
                             <label for="phone" class="form-label">Phone Number</label>
-                            <input type="tel" class="form-control" id="phone" name="phone" required autofocus placeholder="Enter your registered phone number">
+                            <input type="tel" class="form-control" id="phone" name="phone" required autofocus placeholder="Enter your registered phone number" inputmode="numeric" pattern="[0-9]{10}" maxlength="10" title="Enter exactly 10 digits.">
+                            <div class="form-text">Only 10 digits are allowed.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="password" name="password" required autocomplete="current-password">
                         </div>
                         <div class="d-grid">
                             <button type="submit" class="btn btn-primary">Login</button>
@@ -26,7 +31,7 @@
             </div>
             <div class="text-center mt-3">
                 <small class="text-secondary">
-                    Use your registered phone number to login
+                    Log in with the phone number and password you registered
                 </small>
             </div>
             <div class="text-center mt-2">

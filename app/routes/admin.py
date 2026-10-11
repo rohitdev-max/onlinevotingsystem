@@ -1,8 +1,10 @@
-from flask import Blueprint, render_template, request, redirect, url_for, session, flash, current_app, send_from_directory
+from flask import Blueprint, jsonify, render_template, request, redirect, url_for, session, flash, current_app, send_from_directory
 from app.models import Admin, Election, Candidate, User, Vote, VoterEligibility, AuditLog
 from app.services.audit import log_audit_event
+from app.services.live_election import get_live_election_stats
 from app.routes.auth import login_required
 from app import db
+from app.services.time import india_now_naive
 from datetime import datetime
 from werkzeug.utils import secure_filename
 import os
@@ -90,8 +92,33 @@ def admin_dashboard():
     }
     
     recent_elections = Election.query.order_by(Election.created_at.desc()).limit(5).all()
+    tracking_elections = Election.query.filter_by(status='OPEN').order_by(
+        Election.start_time.asc()
+    ).limit(6).all()
+    scheduled_elections = Election.query.filter_by(status='SCHEDULED').order_by(
+        Election.start_time.asc()
+    ).limit(max(6 - len(tracking_elections), 0)).all()
+    tracking_elections.extend(scheduled_elections)
+    completed_elections = Election.query.filter(
+        Election.status.in_(['CLOSED', 'RESULTS_PUBLISHED'])
+    ).order_by(Election.end_time.desc()).limit(max(6 - len(tracking_elections), 0)).all()
+    tracking_elections.extend(completed_elections)
     
-    return render_template('admin/dashboard.html', stats=stats, recent_elections=recent_elections)
+    return render_template(
+        'admin/dashboard.html',
+        stats=stats,
+        recent_elections=recent_elections,
+        tracking_elections=tracking_elections,
+    )
+
+
+@admin_bp.route('/admin/elections/<int:election_id>/live-stats')
+@login_required
+def live_election_stats(election_id):
+    election = db.get_or_404(Election, election_id)
+    response = jsonify(get_live_election_stats(election))
+    response.headers['Cache-Control'] = 'no-store'
+    return response
 
 @admin_bp.route('/admin/elections')
 @login_required
@@ -104,7 +131,7 @@ def elections():
 @login_required
 def clear_election_votes(election_id):
     """Clear every ballot in an election and reset voter eligibility."""
-    election = Election.query.get_or_404(election_id)
+    election = db.get_or_404(Election, election_id)
     vote_count = Vote.query.filter_by(election_id=election.id).count()
 
     try:
@@ -134,22 +161,26 @@ def clear_election_votes(election_id):
 @login_required
 def view_election(election_id):
     """View election details and participation information."""
-    election = Election.query.get_or_404(election_id)
+    election = db.get_or_404(Election, election_id)
     return render_template('admin/view_election.html', election=election)
 
 @admin_bp.route('/admin/elections/<int:election_id>/status', methods=['POST'])
 @login_required
 def update_election_status(election_id):
     """Open or close an election from the admin panel."""
-    election = Election.query.get_or_404(election_id)
+    election = db.get_or_404(Election, election_id)
     new_status = request.form.get('status')
 
     if new_status not in {'OPEN', 'CLOSED'}:
         flash('Invalid election status.', 'error')
         return redirect(url_for('admin.elections'))
 
-    if new_status == 'OPEN' and not election.candidates:
-        flash('Add at least one candidate before opening the election.', 'error')
+    verified_candidates = [
+        candidate for candidate in election.candidates
+        if candidate.kyc_status == 'VERIFIED' and candidate.face_auth_status == 'VERIFIED'
+    ]
+    if new_status == 'OPEN' and not verified_candidates:
+        flash('Verify at least one candidate before opening the election.', 'error')
         return redirect(url_for('admin.elections'))
 
     election.status = new_status
@@ -168,7 +199,7 @@ def update_election_status(election_id):
 @login_required
 def edit_election(election_id):
     """Edit an election before voting begins."""
-    election = Election.query.get_or_404(election_id)
+    election = db.get_or_404(Election, election_id)
 
     if not election.can_be_modified():
         flash('Only draft or scheduled elections can be edited.', 'error')
@@ -217,7 +248,7 @@ def edit_election(election_id):
 @login_required
 def delete_election(election_id):
     """Delete an election and all data belonging to it."""
-    election = Election.query.get_or_404(election_id)
+    election = db.get_or_404(Election, election_id)
     election_title = election.title
 
     try:
@@ -299,87 +330,18 @@ def candidates():
     candidates = Candidate.query.order_by(Candidate.created_at.desc()).all()
     return render_template('admin/candidates.html', candidates=candidates)
 
-@admin_bp.route('/admin/candidates/add', methods=['GET', 'POST'])
-@login_required
-def add_candidate():
-    """Add a candidate and optionally assign the candidate to an election."""
-    elections = Election.query.order_by(Election.created_at.desc()).all()
-    if request.method == 'POST':
-        name = request.form.get('name', '').strip()
-        phone = request.form.get('phone', '').strip()
-        identity_reference = request.form.get('identity_reference', '').strip()
-        description = request.form.get('description', '').strip()
-        photo_file = request.files.get('photo')
-        kyc_document = request.files.get('kyc_document')
-        face_image = request.files.get('face_image')
-        face_capture_method = request.form.get('face_capture_method')
-        election_id = request.form.get('election_id')
-
-        if (not name or not phone or not identity_reference or
-                not kyc_document or not kyc_document.filename or
-            not face_image or not face_image.filename or
-            face_capture_method != 'camera'):
-            flash('Name, phone, identity reference, KYC document, and face image are required.', 'error')
-            return render_template('admin/add_candidate.html', elections=elections)
-
-        if Candidate.query.filter_by(identity_reference=identity_reference).first():
-            flash('A candidate with this identity reference already exists.', 'error')
-            return render_template('admin/add_candidate.html', elections=elections)
-
-        photo = None
-        if photo_file and photo_file.filename:
-            try:
-                photo = _save_candidate_photo(photo_file)
-            except ValueError as error:
-                flash(str(error), 'error')
-                return render_template('admin/add_candidate.html', elections=elections)
-
-        try:
-            kyc_document_filename = _save_kyc_document(kyc_document)
-            face_image_filename = _save_face_image(face_image)
-        except ValueError as error:
-            flash(str(error), 'error')
-            return render_template('admin/add_candidate.html', elections=elections)
-
-        candidate = Candidate(
-            name=name,
-            phone=phone,
-            identity_reference=identity_reference,
-            description=description,
-            photo=photo,
-            kyc_document_filename=kyc_document_filename,
-            face_image_filename=face_image_filename,
-            kyc_submitted_at=datetime.utcnow(),
-        )
-        if election_id:
-            election = Election.query.get_or_404(election_id)
-            candidate.elections.append(election)
-        db.session.add(candidate)
-        db.session.commit()
-        log_audit_event(
-            admin_id=session.get('admin_id'),
-            action='ADD_CANDIDATE',
-            target_type='CANDIDATE',
-            target_id=candidate.id,
-            details=f'Added candidate: {name}'
-        )
-        flash('Candidate added successfully!', 'success')
-        return redirect(url_for('admin.candidates'))
-
-    return render_template('admin/add_candidate.html', elections=elections)
-
 @admin_bp.route('/admin/candidates/<int:candidate_id>')
 @login_required
 def view_candidate(candidate_id):
     """View candidate details and election vote totals."""
-    candidate = Candidate.query.get_or_404(candidate_id)
+    candidate = db.get_or_404(Candidate, candidate_id)
     return render_template('admin/view_candidate.html', candidate=candidate)
 
 @admin_bp.route('/admin/candidates/<int:candidate_id>/kyc', methods=['POST'])
 @login_required
 def review_candidate_kyc(candidate_id):
     """Approve or reject a candidate's KYC submission."""
-    candidate = Candidate.query.get_or_404(candidate_id)
+    candidate = db.get_or_404(Candidate, candidate_id)
     status = request.form.get('status')
     reason = request.form.get('reason', '').strip()
     if status not in {'VERIFIED', 'REJECTED'} or status == 'REJECTED' and not reason:
@@ -420,45 +382,31 @@ def download_face_image(filename):
 @admin_bp.route('/admin/candidates/<int:candidate_id>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_candidate(candidate_id):
-    """Edit candidate details and election assignments."""
-    candidate = Candidate.query.get_or_404(candidate_id)
-    elections = Election.query.order_by(Election.created_at.desc()).all()
+    """Edit a candidate's election assignments."""
+    candidate = db.get_or_404(Candidate, candidate_id)
+    elections = Election.query.filter(
+        ~Election.status.in_(['CLOSED', 'RESULTS_PUBLISHED'])
+    ).order_by(Election.created_at.desc()).all()
 
     if request.method == 'POST':
-        name = request.form.get('name', '').strip()
-        description = request.form.get('description', '').strip()
-        photo_file = request.files.get('photo')
-        election_ids = request.form.getlist('election_ids')
-
-        if not name:
-            flash('Candidate name is required.', 'error')
-            return render_template('admin/edit_candidate.html', candidate=candidate, elections=elections)
-
-        candidate.name = name
-        candidate.description = description
-        if request.form.get('remove_photo') == 'on':
-            _delete_candidate_photo(candidate.photo)
-            candidate.photo = None
-        if photo_file and photo_file.filename:
-            try:
-                new_photo = _save_candidate_photo(photo_file)
-            except ValueError as error:
-                flash(str(error), 'error')
-                return render_template('admin/edit_candidate.html', candidate=candidate, elections=elections)
-            _delete_candidate_photo(candidate.photo)
-            candidate.photo = new_photo
+        election_ids = set(request.form.getlist('election_ids'))
+        completed_assignments = [
+            election for election in candidate.elections
+            if election.status in {'CLOSED', 'RESULTS_PUBLISHED'}
+        ]
         candidate.elections = [
-            election for election in elections if str(election.id) in election_ids
+            *completed_assignments,
+            *(election for election in elections if str(election.id) in election_ids),
         ]
         db.session.commit()
         log_audit_event(
             admin_id=session.get('admin_id'),
-            action='EDIT_CANDIDATE',
+            action='EDIT_CANDIDATE_ELECTIONS',
             target_type='CANDIDATE',
             target_id=candidate.id,
-            details=f'Edited candidate: {name}'
+            details=f'Updated election assignments for candidate: {candidate.name}'
         )
-        flash('Candidate updated successfully!', 'success')
+        flash('Candidate election assignments updated successfully!', 'success')
         return redirect(url_for('admin.view_candidate', candidate_id=candidate.id))
 
     return render_template('admin/edit_candidate.html', candidate=candidate, elections=elections)
@@ -467,7 +415,7 @@ def edit_candidate(candidate_id):
 @login_required
 def delete_candidate(candidate_id):
     """Delete a candidate only when no ballot references the candidate."""
-    candidate = Candidate.query.get_or_404(candidate_id)
+    candidate = db.get_or_404(Candidate, candidate_id)
     if Vote.query.filter_by(candidate_id=candidate.id).first():
         flash('This candidate cannot be deleted because votes have been cast for them.', 'error')
         return redirect(url_for('admin.candidates'))
@@ -497,14 +445,14 @@ def voters():
 @login_required
 def view_voter(voter_id):
     """View voter details and election eligibility."""
-    voter = User.query.get_or_404(voter_id)
+    voter = db.get_or_404(User, voter_id)
     return render_template('admin/view_voter.html', voter=voter)
 
 @admin_bp.route('/admin/voters/<int:voter_id>/kyc', methods=['POST'])
 @login_required
 def review_voter_kyc(voter_id):
     """Approve or reject a voter's KYC submission."""
-    voter = User.query.get_or_404(voter_id)
+    voter = db.get_or_404(User, voter_id)
     status = request.form.get('status')
     reason = request.form.get('reason', '').strip()
     if status not in {'VERIFIED', 'REJECTED'} or status == 'REJECTED' and not reason:
@@ -522,120 +470,11 @@ def review_voter_kyc(voter_id):
     flash(f'Voter KYC {status.lower()} successfully.', 'success')
     return redirect(url_for('admin.view_voter', voter_id=voter.id))
 
-@admin_bp.route('/admin/voters/add', methods=['GET', 'POST'])
-@login_required
-def add_voter():
-    """Add new voter page."""
-    if request.method == 'POST':
-        name = request.form.get('name')
-        phone = request.form.get('phone')
-        identity_reference = request.form.get('identity_reference')
-        kyc_document = request.files.get('kyc_document')
-        face_image = request.files.get('face_image')
-        face_capture_method = request.form.get('face_capture_method')
-        
-        if (not name or not phone or not identity_reference or
-                not kyc_document or not kyc_document.filename or
-            not face_image or not face_image.filename or
-            face_capture_method != 'camera'):
-            flash('Name, phone, identity reference, KYC document, and face image are required.', 'error')
-            return render_template('admin/add_voter.html')
-        
-        # Check if phone number already exists
-        existing_voter = User.query.filter_by(phone=phone).first()
-        if existing_voter:
-            flash('A voter with this phone number already exists.', 'error')
-            return render_template('admin/add_voter.html')
-        
-        # Check if identity reference already exists
-        existing_identity = User.query.filter_by(identity_reference=identity_reference).first()
-        if existing_identity:
-            flash('A voter with this identity reference already exists.', 'error')
-            return render_template('admin/add_voter.html')
-
-        try:
-            kyc_document_filename = _save_kyc_document(kyc_document)
-            face_image_filename = _save_face_image(face_image)
-        except ValueError as error:
-            flash(str(error), 'error')
-            return render_template('admin/add_voter.html')
-        
-        voter = User(
-            name=name,
-            phone=phone,
-            identity_reference=identity_reference,
-            kyc_document_filename=kyc_document_filename,
-            face_image_filename=face_image_filename,
-            kyc_submitted_at=datetime.utcnow(),
-        )
-        
-        db.session.add(voter)
-        db.session.commit()
-        
-        log_audit_event(
-            admin_id=session.get('admin_id'),
-            action='ADD_VOTER',
-            target_type='VOTER',
-            target_id=voter.id,
-            details=f'Added voter: {name} ({phone})'
-        )
-        
-        flash('Voter added successfully!', 'success')
-        return redirect(url_for('admin.voters'))
-    
-    return render_template('admin/add_voter.html')
-
-@admin_bp.route('/admin/voters/<int:voter_id>/edit', methods=['GET', 'POST'])
-@login_required
-def edit_voter(voter_id):
-    """Edit voter page."""
-    voter = User.query.get_or_404(voter_id)
-    
-    if request.method == 'POST':
-        name = request.form.get('name')
-        phone = request.form.get('phone')
-        identity_reference = request.form.get('identity_reference')
-        
-        if not name or not phone or not identity_reference:
-            flash('Please fill in all required fields.', 'error')
-            return render_template('admin/edit_voter.html', voter=voter)
-        
-        # Check if phone number is used by another voter
-        existing_phone = User.query.filter_by(phone=phone).first()
-        if existing_phone and existing_phone.id != voter_id:
-            flash('This phone number is already used by another voter.', 'error')
-            return render_template('admin/edit_voter.html', voter=voter)
-        
-        # Check if identity reference is used by another voter
-        existing_identity = User.query.filter_by(identity_reference=identity_reference).first()
-        if existing_identity and existing_identity.id != voter_id:
-            flash('This identity reference is already used by another voter.', 'error')
-            return render_template('admin/edit_voter.html', voter=voter)
-        
-        voter.name = name
-        voter.phone = phone
-        voter.identity_reference = identity_reference
-        
-        db.session.commit()
-        
-        log_audit_event(
-            admin_id=session.get('admin_id'),
-            action='EDIT_VOTER',
-            target_type='VOTER',
-            target_id=voter.id,
-            details=f'Edited voter: {name} ({phone})'
-        )
-        
-        flash('Voter updated successfully!', 'success')
-        return redirect(url_for('admin.voters'))
-    
-    return render_template('admin/edit_voter.html', voter=voter)
-
 @admin_bp.route('/admin/voters/<int:voter_id>/delete', methods=['POST'])
 @login_required
 def delete_voter(voter_id):
     """Delete voter."""
-    voter = User.query.get_or_404(voter_id)
+    voter = db.get_or_404(User, voter_id)
     
     log_audit_event(
         admin_id=session.get('admin_id'),
@@ -655,7 +494,7 @@ def delete_voter(voter_id):
 @login_required
 def manage_voter_eligibility(voter_id):
     """Manage voter eligibility for elections."""
-    voter = User.query.get_or_404(voter_id)
+    voter = db.get_or_404(User, voter_id)
     elections = Election.query.all()
     
     if request.method == 'POST':
@@ -666,7 +505,7 @@ def manage_voter_eligibility(voter_id):
             flash('Please select an election.', 'error')
             return render_template('admin/voter_eligibility.html', voter=voter, elections=elections)
         
-        election = Election.query.get_or_404(election_id)
+        election = db.get_or_404(Election, election_id)
         
         if action == 'add':
             # Check if already eligible
@@ -742,8 +581,8 @@ def manage_voter_eligibility(voter_id):
 @login_required
 def verify_voter(voter_id, election_id):
     """Verify voter for election."""
-    voter = User.query.get_or_404(voter_id)
-    election = Election.query.get_or_404(election_id)
+    voter = db.get_or_404(User, voter_id)
+    election = db.get_or_404(Election, election_id)
     
     eligibility = VoterEligibility.query.filter_by(
         election_id=election_id,
@@ -773,7 +612,21 @@ def verify_voter(voter_id, election_id):
 @login_required
 def results():
     """View election results page."""
-    elections = Election.query.filter(Election.status.in_(['CLOSED', 'RESULTS_PUBLISHED'])).order_by(Election.end_time.desc()).all()
+    elections_by_id = {
+        election.id: election
+        for election in Election.query.filter(
+            Election.status.in_(['CLOSED', 'RESULTS_PUBLISHED'])
+        ).all()
+    }
+    expired_open_elections = Election.query.filter_by(status='OPEN').filter(
+        Election.end_time < india_now_naive()
+    ).all()
+    elections_by_id.update({election.id: election for election in expired_open_elections})
+    elections = sorted(
+        elections_by_id.values(),
+        key=lambda election: election.end_time,
+        reverse=True,
+    )
     results_by_election = {
         election.id: _calculate_election_results(election)
         for election in elections
@@ -832,8 +685,12 @@ def _calculate_election_results(election):
 @login_required
 def result_details(election_id):
     """View detailed results for a closed election."""
-    election = Election.query.get_or_404(election_id)
-    if election.status not in ['CLOSED', 'RESULTS_PUBLISHED']:
+    election = db.get_or_404(Election, election_id)
+    is_expired_open_election = (
+        election.status == 'OPEN'
+        and election.end_time < india_now_naive()
+    )
+    if election.status not in ['CLOSED', 'RESULTS_PUBLISHED'] and not is_expired_open_election:
         flash('Results are available after the election is closed.', 'warning')
         return redirect(url_for('admin.results'))
 

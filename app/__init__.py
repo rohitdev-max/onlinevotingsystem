@@ -36,20 +36,24 @@ class ProductionConfig(Config):
 
 config = {'development': DevelopmentConfig, 'production': ProductionConfig, 'default': DevelopmentConfig}
 
-def create_app(config_name='default'):
+def create_app(config_name='default', test_config=None):
     app = Flask(__name__)
     app.config.from_object(config[config_name])
+    if test_config:
+        app.config.update(test_config)
     db.init_app(app)
     csrf.init_app(app)
     
-    from app.models import Admin, User, Election, Candidate, Vote, VoterEligibility, AuditLog
+    # Import routes so their models are registered with SQLAlchemy before schema creation.
     from app.routes.auth import auth_bp
     from app.routes.admin import admin_bp
+    from app.routes.candidate import candidate_bp
     from app.routes.voter import voter_bp
     from app.routes.voting import voting_bp
     
     app.register_blueprint(auth_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(candidate_bp)
     app.register_blueprint(voter_bp)
     app.register_blueprint(voting_bp)
     
@@ -69,6 +73,7 @@ def _ensure_kyc_columns():
     inspector = inspect(db.engine)
     migrations = {
         'users': {
+            'password_hash': 'VARCHAR(255)',
             'kyc_status': "VARCHAR(20) NOT NULL DEFAULT 'PENDING'",
             'kyc_document_filename': 'VARCHAR(255)',
             'kyc_submitted_at': 'DATETIME',

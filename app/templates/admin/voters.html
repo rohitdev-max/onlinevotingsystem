@@ -7,7 +7,6 @@
     <div class="row mb-4">
         <div class="col-12">
             <h2>Manage Voters</h2>
-            <a href="{{ url_for('admin.add_voter') }}" class="btn btn-primary">Add New Voter</a>
             <a href="{{ url_for('admin.admin_dashboard') }}" class="btn btn-outline-light">Back to Dashboard</a>
         </div>
     </div>
@@ -38,7 +37,6 @@
                                     <td>
                                         <a href="{{ url_for('admin.view_voter', voter_id=voter.id) }}" class="btn btn-sm btn-primary">View</a>
                                         <a href="{{ url_for('admin.manage_voter_eligibility', voter_id=voter.id) }}" class="btn btn-sm btn-primary">Eligibility</a>
-                                        <a href="{{ url_for('admin.edit_voter', voter_id=voter.id) }}" class="btn btn-sm btn-outline-light">Edit</a>
                                         <form method="POST" action="{{ url_for('admin.delete_voter', voter_id=voter.id) }}" style="display: inline;">
                                             <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this voter?')">Delete</button>
                                         </form>

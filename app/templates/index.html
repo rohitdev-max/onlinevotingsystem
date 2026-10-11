@@ -10,7 +10,8 @@
             <h1 class="display-3 fw-bold mb-3">Make your voice count.</h1>
             <p class="lead text-secondary mb-4">A clear, private voting experience for community and campus elections.</p>
             <div class="d-flex flex-wrap gap-3">
-                <a href="{{ url_for('voter.vote_entry') }}" class="btn btn-primary btn-lg">Enter voter access</a>
+                <a href="{{ url_for('voter.voter_register') }}" class="btn btn-primary btn-lg">Voter registration</a>
+                <a href="{{ url_for('candidate.candidate_register') }}" class="btn btn-outline-light btn-lg">Candidate registration</a>
                 <a href="{{ url_for('auth.admin_login') }}" class="btn btn-outline-light btn-lg">Admin sign in</a>
             </div>
         </div>

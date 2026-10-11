@@ -28,6 +28,7 @@ CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     phone VARCHAR(20) NOT NULL,
+    password_hash VARCHAR(255) NULL,
     identity_reference VARCHAR(255) NOT NULL UNIQUE,
     kyc_status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
     kyc_document_filename VARCHAR(255) NULL,

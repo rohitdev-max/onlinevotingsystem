@@ -1,4 +1,3 @@
-from datetime import datetime
 from app import db
 
 class Vote(db.Model):
@@ -49,7 +48,7 @@ class VoterEligibility(db.Model):
         if self.has_voted:
             raise ValueError("Voter has already voted")
         self.has_voted = True
-        self.voted_at = datetime.utcnow()
+        self.voted_at = None
     
     def __repr__(self):
         return f'<VoterEligibility voter_id={self.voter_id} election_id={self.election_id}>'

@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Candidate Registration - ROHIT VOTING SYSTEM{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="mb-4">
+                <div class="page-kicker">Candidate application</div>
+                <h2>Apply to be a candidate</h2>
+                <p class="text-secondary mb-0">Register anytime. Select an upcoming election if you know which one you want to join, or submit without one and an administrator can assign you later.</p>
+            </div>
+            <div class="card">
+                <div class="card-body p-4">
+                    <form method="POST" enctype="multipart/form-data">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="mb-3">
+                            <label for="election_id" class="form-label">Upcoming election <span class="text-secondary">(optional)</span></label>
+                            <select class="form-select" id="election_id" name="election_id">
+                                <option value="">Register without selecting an election</option>
+                                {% for election in elections %}
+                                <option value="{{ election.id }}">{{ election.title }} ({{ election.start_time.strftime('%Y-%m-%d %H:%M') }})</option>
+                                {% endfor %}
+                            </select>
+                            {% if not elections %}
+                            <div class="form-text">There are no upcoming elections yet. You can still register now.</div>
+                            {% endif %}
+                        </div>
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Full name *</label>
+                            <input type="text" class="form-control" id="name" name="name" required autocomplete="name">
+                        </div>
+                        <div class="mb-3">
+                            <label for="phone" class="form-label">Phone number *</label>
+                            <input type="tel" class="form-control" id="phone" name="phone" required autocomplete="tel" inputmode="numeric" pattern="[0-9]{10}" maxlength="10" title="Enter exactly 10 digits.">
+                            <div class="form-text">Only 10 digits are allowed.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="identity_reference" class="form-label">Identity reference *</label>
+                            <input type="text" class="form-control" id="identity_reference" name="identity_reference" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Candidate statement</label>
+                            <textarea class="form-control" id="description" name="description" rows="4" maxlength="2000"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="kyc_document" class="form-label">Identity document *</label>
+                            <input type="file" class="form-control" id="kyc_document" name="kyc_document" accept=".jpg,.jpeg,.png,.pdf" required>
+                            <div class="form-text">JPG, PNG, or PDF. Maximum request size: 4 MB.</div>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label">Live face capture *</label>
+                            <div data-face-capture class="border rounded p-3">
+                                <video data-face-video class="w-100 d-none" autoplay muted playsinline style="max-height: 280px; object-fit: cover;"></video>
+                                <img data-face-preview class="w-100 d-none" alt="Captured face preview" style="max-height: 280px; object-fit: cover;">
+                                <canvas data-face-canvas class="d-none"></canvas>
+                                <div class="mt-2 d-flex gap-2 flex-wrap">
+                                    <button type="button" data-face-start class="btn btn-outline-light">Start live camera</button>
+                                    <button type="button" data-face-take class="btn btn-primary d-none">Capture face</button>
+                                    <button type="button" data-face-retake class="btn btn-outline-light d-none">Retake</button>
+                                </div>
+                                <p data-face-message class="form-text mb-0 mt-2">Allow camera access, then capture a clear front-facing image.</p>
+                                <input type="hidden" name="face_capture_method" value="">
+                                <input type="file" class="d-none" name="face_image" accept=".jpg,.jpeg,.png" capture="user">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Submit candidate application</button>
+                        <a href="{{ url_for('index') }}" class="btn btn-outline-light">Cancel</a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}<script src="{{ url_for('static', filename='js/face_capture.js') }}"></script>{% endblock %}

@@ -11,5 +11,5 @@ __all__ = [
     'Candidate',
     'Vote',
     'VoterEligibility',
-    'AuditLog'
+    'AuditLog',
 ]

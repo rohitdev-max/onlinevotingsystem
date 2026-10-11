@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="container">
-    <div class="row mb-4"><div class="col-12"><h2>{{ candidate.name }}</h2><a href="{{ url_for('admin.edit_candidate', candidate_id=candidate.id) }}" class="btn btn-primary">Edit</a><a href="{{ url_for('admin.candidates') }}" class="btn btn-outline-light">Back to Candidates</a></div></div>
+    <div class="row mb-4"><div class="col-12"><h2>{{ candidate.name }}</h2><a href="{{ url_for('admin.edit_candidate', candidate_id=candidate.id) }}" class="btn btn-primary">Edit Elections</a><a href="{{ url_for('admin.candidates') }}" class="btn btn-outline-light">Back to Candidates</a></div></div>
     <div class="row"><div class="col-md-8"><div class="card"><div class="card-body">
         {% if candidate.photo %}<img src="{{ candidate.photo }}" alt="{{ candidate.name }}" class="img-fluid mb-3" style="max-height: 220px;">{% endif %}
         <p><strong>Description:</strong> {{ candidate.description or 'No description provided.' }}</p>

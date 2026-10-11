@@ -47,6 +47,54 @@
         </div>
     </div>
 
+    <section class="mb-4" aria-labelledby="live-tracking-heading">
+        <div class="d-flex align-items-end justify-content-between mb-3">
+            <div>
+                <div class="page-kicker">Aggregate participation</div>
+                <h3 id="live-tracking-heading" class="h4 mb-0">Election turnout tracking</h3>
+            </div>
+            <span class="small text-secondary">Updates automatically</span>
+        </div>
+        <div class="row g-3">
+            {% for election in tracking_elections %}
+            <div class="col-xl-6" data-live-election data-live-url="{{ url_for('admin.live_election_stats', election_id=election.id) }}">
+                <div class="card h-100">
+                    <div class="card-header d-flex align-items-center justify-content-between gap-2">
+                        <h4 class="h6 mb-0">{{ election.title }}</h4>
+                        <span class="status-badge" data-live-stat="electionStatus">{{ election.status }}</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3 mb-3">
+                            <div class="col-4"><div class="small text-secondary">Verified</div><strong data-live-stat="totalVerifiedVoters">0</strong></div>
+                            <div class="col-4"><div class="small text-secondary">Votes cast</div><strong data-live-stat="votesCast">0</strong></div>
+                            <div class="col-4"><div class="small text-secondary">Remaining</div><strong data-live-stat="remainingVoters">0</strong></div>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="small">Turnout</span>
+                            <strong><span data-live-stat="turnoutPercentage">0.0</span>%</strong>
+                        </div>
+                        <div class="live-turnout-track" role="progressbar" aria-label="Election turnout" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" data-live-progress-track>
+                            <div class="live-turnout-fill" data-live-progress style="width: 0%"></div>
+                        </div>
+                        <div class="d-flex justify-content-between flex-wrap gap-2 small text-secondary mt-3">
+                            <span>Starts {{ election.start_time.strftime('%Y-%m-%d %H:%M') }}</span>
+                            <span>Ends {{ election.end_time.strftime('%Y-%m-%d %H:%M') }}</span>
+                        </div>
+                        <div class="small fw-semibold mt-3 mb-1">Participation over election period</div>
+                        <div class="live-graph" data-live-graph aria-label="Aggregate votes over time"></div>
+                        <div class="d-flex justify-content-between flex-wrap gap-2 mt-2 small text-secondary">
+                            <span>Updated <span data-live-stat="lastUpdated">Waiting for data</span></span>
+                            <span>Vote audit <strong data-live-stat="auditStatus">Checking</strong> (<span data-live-stat="auditedVotes">0</span>/<span data-live-stat="votesCast">0</span>)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="col-12"><p class="text-secondary mb-0">No elections are currently scheduled or active.</p></div>
+            {% endfor %}
+        </div>
+    </section>
+
     <div class="row">
         <div class="col-md-6 mb-4">
             <div class="card">
@@ -117,3 +165,5 @@
     </div>
 </div>
 {% endblock %}
+
+{% block scripts %}<script src="{{ url_for('static', filename='js/live_election.js') }}"></script>{% endblock %}

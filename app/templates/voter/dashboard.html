@@ -28,20 +28,28 @@
                                     <th>Status</th>
                                     <th>Start Time</th>
                                     <th>End Time</th>
+                                    <th>Live turnout</th>
                                     <th>Action</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for election in elections %}
-                                <tr>
+                                <tr data-live-election data-live-url="{{ url_for('voting.election_live_stats', public_code=election.public_code) }}">
                                     <td>{{ election.title }}</td>
                                     <td>
-                                        <span class="status-badge status-{{ election.status.lower().replace('_', '-') }}">
+                                        <span class="status-badge status-{{ election.status.lower().replace('_', '-') }}" data-live-stat="electionStatus">
                                             {{ election.status }}
                                         </span>
                                     </td>
                                     <td>{{ election.start_time.strftime('%Y-%m-%d %H:%M') }}</td>
                                     <td>{{ election.end_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>
+                                        <div class="small"><span data-live-stat="votesCast">0</span> / <span data-live-stat="totalVerifiedVoters">0</span> votes</div>
+                                        <div class="live-turnout-track my-1" role="progressbar" aria-label="Election turnout" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" data-live-progress-track>
+                                            <div class="live-turnout-fill" data-live-progress style="width: 0%"></div>
+                                        </div>
+                                        <div class="small"><span data-live-stat="turnoutPercentage">0.0</span>%</div>
+                                    </td>
                                     <td>
                                         <a href="{{ url_for('voting.election_page', public_code=election.public_code) }}" class="btn btn-sm btn-primary">
                                             Vote Now
@@ -67,6 +75,9 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-body">
+                    <a href="{{ url_for('voter.voter_profile') }}" class="btn btn-outline-light me-2">
+                        Update Profile
+                    </a>
                     <a href="{{ url_for('voter.voter_logout') }}" class="btn btn-outline-light">
                         Logout
                     </a>
@@ -76,3 +87,5 @@
     </div>
 </div>
 {% endblock %}
+
+{% block scripts %}<script src="{{ url_for('static', filename='js/live_election.js') }}"></script>{% endblock %}

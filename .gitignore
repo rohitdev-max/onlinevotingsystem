@@ -1,6 +1,8 @@
 .env
-cookies.txt
-voter_cookies.txt
+.env.*
+!.env.example
+cookies*.txt
+*_cookies.txt
 __pycache__/
 *.pyc
 *.pyo
@@ -15,9 +17,11 @@ build/
 venv/
 ENV/
 instance/
+app/static/uploads/
 *.db
 *.sqlite
 *.sqlite3
+*.log
 .pytest_cache/
 .coverage
 htmlcov/

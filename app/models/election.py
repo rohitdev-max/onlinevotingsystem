@@ -30,7 +30,7 @@ class Election(db.Model):
         """Check if election is currently open for voting."""
         now = india_now_naive()
         return (
-            self.status in ['OPEN', 'SCHEDULED'] and
+            self.status == 'OPEN' and
             self.start_time <= now and
             self.end_time >= now
         )

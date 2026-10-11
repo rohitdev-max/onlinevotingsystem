@@ -7,7 +7,6 @@
     <div class="row mb-4">
         <div class="col-12">
             <h2>Manage Candidates</h2>
-            <a href="{{ url_for('admin.add_candidate') }}" class="btn btn-primary">Add New Candidate</a>
             <a href="{{ url_for('admin.elections') }}" class="btn btn-outline-light">Back to Elections</a>
         </div>
     </div>
@@ -35,7 +34,7 @@
                                     <td>{{ candidate.description or 'N/A' }}</td>
                                     <td>
                                         <a href="{{ url_for('admin.view_candidate', candidate_id=candidate.id) }}" class="btn btn-sm btn-primary">View</a>
-                                        <a href="{{ url_for('admin.edit_candidate', candidate_id=candidate.id) }}" class="btn btn-sm btn-outline-light">Edit</a>
+                                        <a href="{{ url_for('admin.edit_candidate', candidate_id=candidate.id) }}" class="btn btn-sm btn-outline-light">Edit Elections</a>
                                         <form method="POST" action="{{ url_for('admin.delete_candidate', candidate_id=candidate.id) }}" class="d-inline" onsubmit="return confirm('Delete this candidate?');">
                                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                             <button type="submit" class="btn btn-sm btn-danger">Delete</button>
